@@ -1,4 +1,6 @@
 class Logger:
+    # NOTE: `textual` actually ships it's own logger for the exact reason this logger was created
+    # TODO: Migrate to `textual`'s logger
     """
     A simple logger class that logs messages and prints them later
 
