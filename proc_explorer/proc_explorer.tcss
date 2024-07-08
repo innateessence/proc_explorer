@@ -1,0 +1,22 @@
+Screen {
+  layout: vertical;
+}
+
+#main{
+  layout: vertical;
+}
+
+.box {
+  height: 50%;
+  border: solid pink;
+}
+
+.header {
+  height: 3;
+  border: solid pink;
+}
+
+.footer {
+  height: 3;
+  border: solid pink;
+}
