@@ -42,13 +42,13 @@ class ProcessesListWidget(DataTable):
         self.loading = True
         """Flag to indicate if the widget is loading. Widget renders a loader when this is True"""
 
-    # async def on_resize(self, event: events.Resize) -> None:
-    #     """Resize event handler for the widget"""
-    #     if self.loading or self.__lock.locked():
-    #         return
-    #     if self.has_size_changed:
-    #         # await self._refresh()
-    #         self.__last_terminal_size = get_terminal_size()
+    async def on_resize(self, event: events.Resize) -> None:
+        """Resize event handler for the widget"""
+        if self.loading or self.__lock.locked():
+            return
+        if self.has_size_changed:
+            await self._refresh()
+            self.__last_terminal_size = get_terminal_size()
 
     @property
     def proc(self) -> psutil.Process | None:
@@ -130,17 +130,17 @@ class ProcessesListWidget(DataTable):
         Any code that needs to run when the widget is mounted should be
         placed here
 
-        the widget is mounted when it is added DOM of the app
+        the widget is mounted when it is added to the DOM of the app
         """
         self.run_worker(self._refresh_loop(), exclusive=True)
 
-    async def _refresh(self, remember_cursor_position=True) -> None:
+    async def _refresh(self, remember_cursor_position=True, with_lock=True) -> None:
         """Manually refresh the widget aka re-render the widget"""
         self.loading = True
-        self.clear()
         old_pid = self.proc_pid
-        await self._refresh_columns()
-        await self._refresh_rows()
+        self.clear()
+        await self._refresh_columns(with_lock=with_lock)
+        await self._refresh_rows(with_lock=with_lock)
         if remember_cursor_position and old_pid is not None:
             self._move_cursor_to_closet_pid(old_pid)
         else:
@@ -148,18 +148,15 @@ class ProcessesListWidget(DataTable):
             logger.log(f"old_pid: {old_pid}")
         self.loading = False
 
-    # @property
-    # def __should_refresh_columns(self) -> bool:
-    #     """Check if the columns should be refreshed"""
-    #     _, last_columns = self.__last_terminal_size
-    #     _, columns = get_terminal_size()
-    #     if not self.columns:
-    #         return True
-    #     return not last_columns == columns
-
-    async def _refresh_columns(self) -> None:
+    async def _refresh_columns(self, with_lock=True) -> None:
         """Refresh the columns of the widget"""
-        # async with self.__lock:
+        if with_lock:
+            async with self.__lock:
+                await self.__refresh_columns()
+        else:
+            await self.__refresh_columns()
+
+    async def __refresh_columns(self) -> None:
         if not self.columns or self.has_size_changed:
             _, columns = get_terminal_size()
             self.columns.clear()
@@ -167,20 +164,26 @@ class ProcessesListWidget(DataTable):
             self.add_column("Name", width=columns - 28)
             self.add_column("Status", width=10)
 
-    async def _refresh_rows(self) -> None:
+    async def _refresh_rows(self, with_lock=True) -> None:
         """Refresh the rows of the widget"""
-        async with self.__lock:
-            logger.log("Updating processes...")
-            self.rows.clear()
-            for proc in psutil.process_iter():
-                try:
-                    pid = proc.pid
-                    name = proc.name()
-                    status = proc.status()
-                    self.add_row(str(pid), name, status)
-                except psutil.NoSuchProcess:
-                    pass
-            self.__last_timestamp = time.time()
+        if with_lock:
+            async with self.__lock:
+                await self.__refresh_rows()
+        else:
+            await self.__refresh_rows()
+
+    async def __refresh_rows(self) -> None:
+        logger.log("Updating processes...")
+        self.rows.clear()
+        for proc in psutil.process_iter():
+            try:
+                pid = proc.pid
+                name = proc.name()
+                status = proc.status()
+                self.add_row(str(pid), name, status)
+            except psutil.NoSuchProcess:
+                pass
+        self.__last_timestamp = time.time()
 
     async def _refresh_loop(self) -> None:
         """main event loop for refreshing the  widgets UI in the background"""
