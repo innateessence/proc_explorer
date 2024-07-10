@@ -157,12 +157,18 @@ class ProcessesListWidget(DataTable):
             await self.__refresh_columns()
 
     async def __refresh_columns(self) -> None:
-        if not self.columns or self.has_size_changed:
+        if self.has_size_changed or not self.columns:
             _, columns = get_terminal_size()
+            pid_width = 8
+            if self.app.should_render_in_landscape_mode:
+                name_width = (columns // 2) - 28
+            else:
+                name_width = columns - 28
+            status_width = 10
             self.columns.clear()
-            self.add_column("PID", width=8)
-            self.add_column("Name", width=columns - 28)
-            self.add_column("Status", width=10)
+            self.add_column("PID", width=pid_width)
+            self.add_column("Name", width=name_width)
+            self.add_column("Status", width=status_width)
 
     async def _refresh_rows(self, with_lock=True) -> None:
         """Refresh the rows of the widget"""
@@ -269,26 +275,26 @@ class ProcExplorerApp(App):
         return self._running
 
     @property
-    def should_render_in_portrait_mode(self) -> bool:
+    def should_render_in_landscape_mode(self) -> bool:
         lines, columns = get_terminal_size()
         logger.log(f"terminal lines: {lines},  columns: {columns}")
-        return (columns // 4) > lines
+        return (columns // 3) > lines
 
     def _set_portrait_mode(self) -> None:
         logger.log("Switching to portrait mode!")
-        self._container.styles.layout = "horizontal"
-        self._processes_widget.styles.width = "50%"
-        self._processes_widget.styles.height = "100%"
-        self._files_widget.styles.width = "50%"
-        self._files_widget.styles.height = "100%"
-
-    def _set_landscape_mode(self) -> None:
-        logger.log("Switching to landscape mode!")
         self._container.styles.layout = "vertical"
         self._processes_widget.styles.width = "100%"
         self._processes_widget.styles.height = "50%"
         self._files_widget.styles.width = "100%"
         self._files_widget.styles.height = "50%"
+
+    def _set_landscape_mode(self) -> None:
+        logger.log("Switching to landscape mode!")
+        self._container.styles.layout = "horizontal"
+        self._processes_widget.styles.width = "50%"
+        self._processes_widget.styles.height = "100%"
+        self._files_widget.styles.width = "50%"
+        self._files_widget.styles.height = "100%"
 
     def on_key(self, event: events.Key) -> None:
         logger.log(event)
@@ -298,18 +304,19 @@ class ProcExplorerApp(App):
 
     async def on_resize(self, event: events.Resize) -> None:
         logger.log(event)
-        if self.should_render_in_portrait_mode:
-            self._set_portrait_mode()
-            # await self._processes_widget.
+        if self.should_render_in_landscape_mode:
+            # self._set_portrait_mode()
+            self._set_landscape_mode()
             await self._processes_widget._refresh_columns()
         else:
-            self._set_landscape_mode()
+            self._set_portrait_mode()
+            # self._set_landscape_mode()
 
     def on_mount(self) -> None:
-        if self.should_render_in_portrait_mode:
-            self._set_portrait_mode()
-        else:
+        if self.should_render_in_landscape_mode:
             self._set_landscape_mode()
+        else:
+            self._set_portrait_mode()
 
     def compose(self) -> ComposeResult:
         self._header = Header(classes="header")
