@@ -16,6 +16,15 @@ import asyncio
 
 
 class ProcessesListWidget(DataTable):
+    """
+    Widget to display a list of processes.
+
+    All other widgets that will be a dependency of this widget.
+    This widget is exclusively used as acting like a fancy UI to point to a process.
+
+    All other widgets will rely on the global 'pointer' this widget assigns, and show some data regarding that process.
+    """
+
     BINDINGS = [
         Binding("k,up", "cursor_up", "Up", show=True),
         Binding("j,down", "cursor_down", "Down", show=True),
@@ -135,7 +144,11 @@ class ProcessesListWidget(DataTable):
         self.run_worker(self._refresh_loop(), exclusive=True)
 
     async def _refresh(self, remember_cursor_position=True, with_lock=True) -> None:
-        """Manually refresh the widget aka re-render the widget"""
+        """
+        Manually refresh the widget aka re-render the widget
+
+        This also recalculates anything the UI depends on in order to properly render
+        """
         self.loading = True
         old_pid = self.proc_pid
         self.clear()
@@ -149,7 +162,13 @@ class ProcessesListWidget(DataTable):
         self.loading = False
 
     async def _refresh_columns(self, with_lock=True) -> None:
-        """Refresh the columns of the widget"""
+        """
+        Refresh the columns of the widget
+
+        params:
+            with_lock: bool = True
+                if True, the method will acquire the lock before proceeding
+        """
         if with_lock:
             async with self.__lock:
                 await self.__refresh_columns()
@@ -157,6 +176,11 @@ class ProcessesListWidget(DataTable):
             await self.__refresh_columns()
 
     async def __refresh_columns(self) -> None:
+        """
+        function to refresh the columns of the widget
+
+        Call this directly if you cannot await the result for some reason
+        """
         if self.has_size_changed or not self.columns:
             _, columns = get_terminal_size()
             pid_width = 8
@@ -179,6 +203,11 @@ class ProcessesListWidget(DataTable):
             await self.__refresh_rows()
 
     async def __refresh_rows(self) -> None:
+        """
+        function to refresh the rows of the widget
+
+        call this directly if you cannot await the result for some reason
+        """
         logger.log("Updating processes...")
         self.rows.clear()
         for proc in psutil.process_iter():
@@ -192,7 +221,7 @@ class ProcessesListWidget(DataTable):
         self.__last_timestamp = time.time()
 
     async def _refresh_loop(self) -> None:
-        """main event loop for refreshing the  widgets UI in the background"""
+        """main event loop for refreshing the widgets UI in the background"""
         while self.app._running:
             if time.time() - self.__last_timestamp < self.__RERENDER_DELAY:
                 await asyncio.sleep(self.__POLLING_INTERVAL)
@@ -305,12 +334,10 @@ class ProcExplorerApp(App):
     async def on_resize(self, event: events.Resize) -> None:
         logger.log(event)
         if self.should_render_in_landscape_mode:
-            # self._set_portrait_mode()
             self._set_landscape_mode()
             await self._processes_widget._refresh_columns()
         else:
             self._set_portrait_mode()
-            # self._set_landscape_mode()
 
     def on_mount(self) -> None:
         if self.should_render_in_landscape_mode:
