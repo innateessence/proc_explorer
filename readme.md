@@ -2,6 +2,13 @@
 
 * Process explorer
 
+## Preview
+
+* Portrait Mode
+![portrait-preview](https://i.imgur.com/qhAKt8z.png)
+* Landscape Mode
+![langscape-preview](https://i.imgur.com/wDNO8ZX.png)
+
 ## Roadmap v1
 
 * Processes List Widget
