@@ -51,7 +51,7 @@ class OpenFilesListWidget(DataTable):
         """Terminal screen size"""
         self.loading = True
         """Flag to indicate if the widget is loading. Widget renders a loader when this is True"""
-        self.last_proc = Undefined
+        self.last_proc = Undefined  # None causes issues with the widget on initial load
 
     @property
     def target_proc(self) -> psutil.Process | None:
