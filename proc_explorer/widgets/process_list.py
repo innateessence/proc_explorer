@@ -10,6 +10,8 @@ import time
 
 import asyncio
 
+from proc_explorer.util import shared_process
+
 
 class ProcessesListWidget(DataTable):
     """
@@ -34,6 +36,7 @@ class ProcessesListWidget(DataTable):
         """default kwargs for the widget. These will be merged **kwargs. **kwargs overrides default_kwargs if there is a conflict."""
         kwargs = {**default_kwargs, **kwargs}
         super().__init__(*args, **kwargs)
+
         self.__last_timestamp = time.time() - 60
         """timestamp of the last time the widget was refreshed"""
         self.__RERENDER_DELAY = 5.0
@@ -67,6 +70,14 @@ class ProcessesListWidget(DataTable):
             return None
         pid = row_values[0]
         return psutil.Process(pid=pid)
+
+    def on_data_table_row_highlighted(self, row: int) -> None:
+        """Event handler for when a row is highlighted"""
+        pid = self.proc_pid
+        if pid is not None:
+            shared_process.pid = pid
+
+        logger.log(f"highlighted row: {row} | pid: {shared_process.pid})")
 
     @property
     def row_values(self) -> tuple[int, str, str] | None:
@@ -137,7 +148,9 @@ class ProcessesListWidget(DataTable):
 
         the widget is mounted when it is added to the DOM of the app
         """
-        self.run_worker(self._refresh_loop(), exclusive=True)
+        self.run_worker(
+            self._refresh_loop, group="process_list", name="process_list", thread=True
+        )
 
     async def _refresh(self, remember_cursor_position=True, with_lock=True) -> None:
         """
@@ -219,15 +232,16 @@ class ProcessesListWidget(DataTable):
     async def _refresh_loop(self) -> None:
         """main event loop for refreshing the widgets UI in the background"""
         while self.app._running:
-            if time.time() - self.__last_timestamp < self.__RERENDER_DELAY:
-                await asyncio.sleep(self.__POLLING_INTERVAL)
-                continue
-
             if self.__lock.locked():
                 await asyncio.sleep(self.__POLLING_INTERVAL)
                 continue
 
+            if time.time() - self.__last_timestamp < self.__RERENDER_DELAY:
+                await asyncio.sleep(self.__POLLING_INTERVAL)
+                continue
+
             await self._refresh()
+            await asyncio.sleep(0.10)
 
     def __distance_from_pid(self, pid) -> int:
         """
