@@ -5,9 +5,11 @@
 ## Preview
 
 * Portrait Mode
-![portrait-preview](https://i.imgur.com/qhAKt8z.png)
+![image](https://github.com/user-attachments/assets/cd63e3db-690a-4257-b3eb-53fed10f8276)
+
 * Landscape Mode
-![langscape-preview](https://i.imgur.com/wDNO8ZX.png)
+![image](https://github.com/user-attachments/assets/4e284033-ecdb-418b-bbba-f794f0b10a3a)
+
 
 ## Roadmap v1
 
