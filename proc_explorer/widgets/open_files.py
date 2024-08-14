@@ -51,12 +51,18 @@ class OpenFilesListWidget(DataTable):
         """Terminal screen size"""
         self.loading = True
         """Flag to indicate if the widget is loading. Widget renders a loader when this is True"""
-        self.last_proc = Undefined  # None causes issues with the widget on initial load
+        self.last_pid = Undefined  # None prevents initial render/logic
 
     @property
     def target_proc(self) -> psutil.Process | None:
-        logger.log("OpenFilesListWidget pid is : " + str(shared_process.pid))
         return shared_process.proc
+
+    @property
+    def has_pid_changed(self) -> bool:
+        target_proc = self.target_proc
+        if target_proc is None:
+            return False
+        return target_proc.pid != self.last_pid
 
     @property
     def open_files(self) -> list[File]:
@@ -106,19 +112,27 @@ class OpenFilesListWidget(DataTable):
     async def _refresh_loop(self) -> None:
         logger.log("OpenFilesListWidget refresh loop started!")
         while self.app._running:
+            target_proc = self.target_proc
+            target_pid = getattr(target_proc, 'pid', None)
+
             logger.log("OpenFilesListWidget refresh loop running")
             if self.__lock.locked():
                 logger.log("OpenFilesListWidget refresh loop is locked")
                 await asyncio.sleep(self.__POLLING_INTERVAL)
                 continue
 
-            if self.target_proc == self.last_proc:
+            if target_proc and target_proc.pid == self.last_pid:
                 logger.log("OpenFilesListWidget target_proc is the same as last_proc")
                 await asyncio.sleep(self.__POLLING_INTERVAL)
                 continue
 
-            await self._refresh()
+            if self.has_pid_changed:
+                logger.log(f"OpenFilesListWidget pid has changed! last_pid: {self.last_pid}, target_proc.pid: {target_pid}")
+                await self._refresh()
+
             await asyncio.sleep(self.__POLLING_INTERVAL)
+
+            self.last_pid = target_pid or self.last_pid
 
     async def _refresh(self, with_lock=True) -> None:
         logger.log("OpenFilesListWidget refreshing!")
@@ -165,11 +179,11 @@ class OpenFilesListWidget(DataTable):
         """
         if self.has_size_changed or not self.columns:
             _, columns = get_terminal_size()
-            fd_width = 8
+            fd_width = 5
             if self.app.should_render_in_landscape_mode:  # pyright: ignore
-                path_width = (columns // 2) - 28
+                path_width = (columns // 2) - 25
             else:
-                path_width = columns - 28
+                path_width = columns - 25
             filesize_width = 10
             self.columns.clear()
             self.add_column("FD", width=fd_width)
