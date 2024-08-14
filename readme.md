@@ -10,6 +10,12 @@
 * Landscape Mode
 ![image](https://github.com/user-attachments/assets/4e284033-ecdb-418b-bbba-f794f0b10a3a)
 
+## Quickstart
+
+* `python -m venv venv`
+* `source venv/bin/activate`
+* `pip install -r requirements.txt`
+* `python run.py`
 
 ## Roadmap v1
 
