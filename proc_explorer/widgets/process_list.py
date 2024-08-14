@@ -39,7 +39,7 @@ class ProcessesListWidget(DataTable):
 
         self.__last_timestamp = time.time() - 60
         """timestamp of the last time the widget was refreshed"""
-        self.__RERENDER_DELAY = 5.0
+        self.__RERENDER_DELAY = 10.0
         """seconds to wait until re-rendering widget with UI refresh loop"""
         self.__POLLING_INTERVAL = 0.50
         """seconds to wait between all polling. Primarily used by UI refresh loop"""

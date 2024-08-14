@@ -5,6 +5,7 @@ from textual.widgets import DataTable
 from proc_explorer.util import Undefined, get_terminal_size
 
 import asyncio
+from rich.text import Text
 
 from proc_explorer.logger import logger
 from proc_explorer.util import shared_process
@@ -113,7 +114,7 @@ class OpenFilesListWidget(DataTable):
         logger.log("OpenFilesListWidget refresh loop started!")
         while self.app._running:
             target_proc = self.target_proc
-            target_pid = getattr(target_proc, 'pid', None)
+            target_pid = getattr(target_proc, "pid", None)
 
             logger.log("OpenFilesListWidget refresh loop running")
             if self.__lock.locked():
@@ -127,7 +128,9 @@ class OpenFilesListWidget(DataTable):
                 continue
 
             if self.has_pid_changed:
-                logger.log(f"OpenFilesListWidget pid has changed! last_pid: {self.last_pid}, target_proc.pid: {target_pid}")
+                logger.log(
+                    f"OpenFilesListWidget pid has changed! last_pid: {self.last_pid}, target_proc.pid: {target_pid}"
+                )
                 await self._refresh()
 
             await asyncio.sleep(self.__POLLING_INTERVAL)
@@ -154,7 +157,10 @@ class OpenFilesListWidget(DataTable):
     async def __refresh_rows(self) -> None:
         self.rows.clear()
         for file in self.open_files:
-            self.add_row(str(file.fd), file.path, file.filesize)
+            fd = str(file.fd)
+            fp = file.path.replace(" ", "_")
+            fs = file.filesize
+            self.add_row(fd, fp, fs)
         logger.log("".join([file.path for file in self.open_files]))
 
     async def _refresh_columns(self, with_lock=True) -> None:
@@ -189,3 +195,9 @@ class OpenFilesListWidget(DataTable):
             self.add_column("FD", width=fd_width)
             self.add_column("Path", width=path_width)
             self.add_column("File Size", width=filesize_width)
+
+    def on_data_table_row_highlighted(self, event) -> None:
+        # RowHighlighted(cursor_row=1, row_key=<textual.widgets._data_table.RowKey object at 0x10874dcd0>
+        """Event handler for when a row is highlighted"""
+        row = self.get_row(event.row_key)
+        logger.log(f"[!!] OpenFilesListWidget: highlighted row: {row}")
