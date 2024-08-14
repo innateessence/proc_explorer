@@ -1,1 +1,2 @@
 textual==0.71.0
+psutil==5.9.0
