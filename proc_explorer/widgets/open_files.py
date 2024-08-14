@@ -158,6 +158,9 @@ class OpenFilesListWidget(DataTable):
         self.rows.clear()
         for file in self.open_files:
             fd = str(file.fd)
+            # TODO: spaces are breaking how the filepath is rendered. The spaces exist, but do not render correctly.
+            # NOTE: Explicitly converting to `rich.text.Text(file_path)` before passing to `add_row()` does not fix the problem
+            # Consider filing a bug report on github in the future.
             fp = file.path.replace(" ", "_")
             fs = file.filesize
             self.add_row(fd, fp, fs)
